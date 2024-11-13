@@ -2,47 +2,48 @@ version: "3.8"
 
 services:
   mysql:
-    image: mysql:5.7
-    container_name: mysql
+    container_name: "mysql-new"
+    image: "mysql"
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: devops
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "devops"
     volumes:
-      - ./mysql-data:/var/lib/mysql
-      - ./message.sql:/docker-entrypoint-initdb.d/message.sql  
+      - "mysql_data:/var/lib/mysql"
     networks:
-      - twotier
+      - "two_tier"
+    restart: "always"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 60s
 
-  flask-app:
+  flask:
+    container_name: "two_tier-flask"
     build:
       context: .
-    container_name: flask-app
     ports:
       - "5000:5000"
     environment:
-      MYSQL_HOST: mysql
-      MYSQL_USER: root
-      MYSQL_PASSWORD: root
-      MYSQL_DB: devops
-    depends_on:
-      - mysql
+      MYSQL_HOST: "mysql"
+      MYSQL_USER: "root"
+      MYSQL_PASSWORD: "root"
+      MYSQL_DB: "devops"
     networks:
-      - twotier
-    restart: always
+      - "two_tier"
+    restart: "always"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "curl", "--fail", "http://localhost:5000/"]  
+      interval: 30s
+      timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
+    depends_on:
+      mysql:
+        condition: "service_healthy"
 
+volumes:
+  mysql_data:
 networks:
-  twotier:
+  two_tier:
+
